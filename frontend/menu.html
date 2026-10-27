@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f8f7f2">
+  <title>Monte seu prato — Prato Pronto</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Nunito+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="index.html" aria-label="Prato Pronto, início"><span class="brand-mark" aria-hidden="true">◒</span><span>prato<span class="brand-blue">pronto</span><i>.</i></span></a><nav class="nav-links" aria-label="Navegação principal"><a href="index.html">Início</a><a class="active" href="menu.html">Cardápio</a><a href="retirada.html">Acompanhar pedido</a></nav><a class="button button-dark button-small" href="retirada.html">Já tenho código <span aria-hidden="true">→</span></a></header>
+  <main class="wrap page-main">
+    <a class="back-link" href="index.html">← Voltar ao início</a>
+    <section class="page-intro"><p class="eyebrow">PASSO 1 · ESCOLHA O SEU ALMOÇO</p><h1>Seu prato,<br><span>suas escolhas.</span></h1><p>Escolha com calma. A cozinha deixa tudo prontinho para o intervalo.</p></section>
+    <div id="menu-message" class="notice" role="status" aria-live="polite">Carregando o cardápio de hoje…</div>
+    <form id="pedido-form" class="order-layout" hidden>
+      <div class="order-main">
+        <section class="form-card"><div class="form-heading"><span class="step-badge">01</span><div><h2>Quem vai almoçar?</h2><p>Para a equipe entregar o prato certo.</p></div></div>
+          <div class="role-switch" role="group" aria-label="Tipo de pessoa"><button type="button" class="role-option selected" data-role="aluno" aria-pressed="true">🎒 Sou aluno</button><button type="button" class="role-option" data-role="professor" aria-pressed="false">📚 Sou professor</button></div>
+          <label class="field-label" for="nome">Seu nome</label><input class="text-input" id="nome" name="nome" placeholder="Como a equipe pode te chamar?" minlength="2" maxlength="80" autocomplete="name" required>
+          <div id="turma-field" class="field-group"><label class="field-label" for="turma">Turma <span class="optional">opcional</span></label><input class="text-input" id="turma" name="turma" placeholder="Ex.: 8º B" maxlength="32"></div>
+        </section>
+        <section class="menu-section"><div class="form-heading"><span class="step-badge">02</span><div><h2>O que vai no prato?</h2><p>Toque para incluir. Use + e − para escolher a quantidade.</p></div></div><div id="menu-groups"></div></section>
+      </div>
+      <aside class="summary-card"><div class="summary-head"><span class="summary-icon">♨</span><div><strong>Seu prato</strong><small>Vai ficar uma delícia.</small></div></div><div class="divider"></div><ul id="summary-items" class="summary-items"><li class="summary-empty">🍽️<br>Seu prato começa<br>com uma escolha.</li></ul><div class="summary-count"><span>Itens no prato</span><strong id="total-items">0</strong></div><p class="summary-hint">✓ Seu código aparece ao confirmar.</p><p id="form-error" class="form-error" role="alert"></p><button id="confirmar-pedido" class="button button-primary full-width" type="submit" disabled>Confirmar meu prato <span aria-hidden="true">→</span></button><small class="summary-footnote">Sem pagamento. Só escolher e retirar.</small></aside>
+    </form>
+  </main>
+  <footer class="footer wrap"><a class="brand" href="index.html"><span class="brand-mark">◒</span><span>prato<span class="brand-blue">pronto</span><i>.</i></span></a><span>Uma boa ideia para um intervalo melhor.</span><a href="retirada.html">Acompanhar pedido</a></footer>
+  <script>
+    // Endpoints REST esperados: GET /api/menu e POST /api/pedidos.
+    const API = "/api";
+    const labels = {base:"Pra começar",protein:"A estrela do prato",side:"Para acompanhar",salad:"Um toque fresco",dessert:"Final feliz",drink:"Pra beber"};
+    const emojis = {base:"🍚",protein:"🍗",side:"🥕",salad:"🥗",dessert:"🍌",drink:"🧃"};
+    let cardapio = [], selecao = new Map(), tipoPessoa = "aluno";
+    const message = document.querySelector("#menu-message"), form = document.querySelector("#pedido-form");
+    const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+    function valueOf(item, ...keys) { for (const key of keys) if (item?.[key] !== undefined && item[key] !== null) return item[key]; return undefined; }
+    function normalize(item) {
+      const category = String(valueOf(item,"categoria","category","tipo") || "side").toLowerCase();
+      return {id:valueOf(item,"id","id_menu","menuItemId"), nome:valueOf(item,"nome","name","titulo") || "Item do cardápio", descricao:valueOf(item,"descricao","description") || "Preparado hoje pela cozinha.", categoria:labels[category] ? category : "side", emoji:valueOf(item,"emoji","icone") || emojis[category] || "🍽️", disponivel:valueOf(item,"disponivel","isAvailable","available") !== false && valueOf(item,"disponivel","isAvailable","available") !== 0};
+    }
+    function renderMenu() {
+      const container = document.querySelector("#menu-groups");
+      const groups = Object.keys(labels).map(category => ({category, items:cardapio.filter(item => item.categoria === category)})).filter(group => group.items.length);
+      container.innerHTML = groups.map(group => `<section class="menu-group"><div class="menu-group-title"><span>${emojis[group.category]}</span><h3>${labels[group.category]}</h3><i></i><small>${group.category === "base" ? "BASES" : group.category === "protein" ? "PROTEÍNAS" : "OPÇÕES"}</small></div><div class="menu-grid">${group.items.map(item => {const qty=selecao.get(String(item.id)) || 0; return `<article class="menu-card ${qty ? "is-selected" : ""} ${item.disponivel ? "" : "is-unavailable"}"><button class="menu-pick" type="button" data-pick="${esc(item.id)}" ${item.disponivel ? "" : "disabled"} aria-pressed="${qty>0}"><span class="food-emoji">${esc(item.emoji)}</span><span class="food-copy"><strong>${esc(item.nome)}</strong><small>${esc(item.descricao)}</small></span><span class="pick-icon">${qty ? "✓" : "+"}</span></button>${qty ? `<div class="quantity-row"><span>Quantidade</span><div><button type="button" data-qty="${esc(item.id)}" data-delta="-1" aria-label="Diminuir ${esc(item.nome)}">−</button><b>${qty}</b><button type="button" data-qty="${esc(item.id)}" data-delta="1" aria-label="Aumentar ${esc(item.nome)}" ${qty>=5 ? "disabled" : ""}>+</button></div></div>` : ""}${item.disponivel ? "" : `<small class="unavailable">Indisponível hoje</small>`}</article>`}).join("")}</div></section>`).join("");
+      container.querySelectorAll("[data-pick]").forEach(button => button.addEventListener("click", () => {const id=String(button.dataset.pick); selecao.set(id, selecao.has(id) ? 0 : 1); if (!selecao.get(id)) selecao.delete(id); renderMenu(); renderSummary();}));
+      container.querySelectorAll("[data-qty]").forEach(button => button.addEventListener("click", () => {const id=String(button.dataset.qty), next=(selecao.get(id)||0)+Number(button.dataset.delta); if (next<1) selecao.delete(id); else selecao.set(id, Math.min(5,next)); renderMenu(); renderSummary();}));
+    }
+    function renderSummary() {
+      const selected=cardapio.filter(item => selecao.has(String(item.id))), list=document.querySelector("#summary-items");
+      list.innerHTML=selected.length ? selected.map(item=>`<li><span>${esc(item.emoji)}</span><span>${esc(item.nome)}</span><b>×${selecao.get(String(item.id))}</b></li>`).join("") : `<li class="summary-empty">🍽️<br>Seu prato começa<br>com uma escolha.</li>`;
+      document.querySelector("#total-items").textContent=[...selecao.values()].reduce((sum,n)=>sum+n,0);
+      document.querySelector("#confirmar-pedido").disabled=!selected.length || !document.querySelector("#nome").value.trim();
+    }
+    document.querySelectorAll(".role-option").forEach(button=>button.addEventListener("click",()=>{tipoPessoa=button.dataset.role; document.querySelectorAll(".role-option").forEach(option=>{const active=option===button; option.classList.toggle("selected",active); option.setAttribute("aria-pressed",String(active));}); document.querySelector("#turma-field").hidden=tipoPessoa!=="aluno";}));
+    document.querySelector("#nome").addEventListener("input",renderSummary);
+    form.addEventListener("submit",async event=>{
+      event.preventDefault(); const selected=cardapio.filter(item=>selecao.has(String(item.id)));
+      if (!selected.length) return;
+      const button=document.querySelector("#confirmar-pedido"), error=document.querySelector("#form-error"); button.disabled=true; button.textContent="Enviando pedido…"; error.textContent="";
+      const nome=document.querySelector("#nome").value.trim(), turma=tipoPessoa==="aluno" ? document.querySelector("#turma").value.trim() : "";
+      const itens=selected.map(item=>({id:item.id,menuItemId:item.id,menu_item_id:item.id,quantidade:selecao.get(String(item.id)),quantity:selecao.get(String(item.id)),nome:item.nome}));
+      try {
+        const response=await fetch(`${API}/pedidos`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nome,tipo_usuario:tipoPessoa,tipo:tipoPessoa,turma,itens,personName:nome,role:tipoPessoa==="aluno"?"student":"teacher",classGroup:turma,items:itens})});
+        const result=await response.json(); if(!response.ok) throw new Error(result.message||result.erro||"Não foi possível confirmar o pedido.");
+        const code=result.codigo||result.codigo_retirada||result.codigoRetirada||result.pickupCode||result.code||result.pedido?.codigo||result.data?.codigo;
+        if(!code || !/^\d{4}$/.test(String(code))) throw new Error("O pedido foi enviado, mas a resposta não trouxe um código de 4 dígitos. Verifique a resposta da rota POST /api/pedidos.");
+        const pedido={codigo:String(code),nome,tipo:tipoPessoa,turma,itens:selected.map(item=>({id:item.id,nome:item.nome,emoji:item.emoji,quantidade:selecao.get(String(item.id))}))}; sessionStorage.setItem("pratoProntoPedido",JSON.stringify(pedido)); window.location.href="confirmacao.html";
+      } catch(err) {error.textContent=err.message||"Não foi possível enviar. Confira o servidor e tente novamente."; button.disabled=false; button.innerHTML="Confirmar meu prato <span aria-hidden='true'>→</span>";}
+    });
+    (async()=>{try{const response=await fetch(`${API}/menu`); if(!response.ok) throw new Error("Não foi possível buscar o cardápio no servidor."); const raw=await response.json(); const rows=Array.isArray(raw)?raw:raw.cardapio||raw.menu||raw.items||raw.data?.cardapio||raw.data?.items||raw.data||[]; if(!Array.isArray(rows)||!rows.length) throw new Error("O cardápio está vazio no banco de dados."); cardapio=rows.map(normalize).filter(item=>item.id!==undefined); message.hidden=true; form.hidden=false; renderMenu(); renderSummary();}catch(err){message.className="notice notice-error";message.textContent=`${err.message} Confira se GET /api/menu está configurado no servidor.`;}})();
+  </script>
+</body>
+</html>

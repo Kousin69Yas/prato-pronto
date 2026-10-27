@@ -1,0 +1,39 @@
+# Dependências Node.js
+node_modules/
+
+# Segredos e configurações locais (.env.example continua versionável)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Saídas geradas e testes
+coverage/
+dist/
+build/
+*.tsbuildinfo
+
+# Arquivos temporários do sistema/editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Arquivos de execução e dados locais
+*.pid
+*.pid.lock
+*.dump
+*.sql.gz
+.mysql_history
+backend/uploads/
+tmp/

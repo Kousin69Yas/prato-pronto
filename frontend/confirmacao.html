@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f8f7f2">
+  <title>Pedido confirmado — Prato Pronto</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Nunito+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="index.html" aria-label="Prato Pronto, início"><span class="brand-mark" aria-hidden="true">◒</span><span>prato<span class="brand-blue">pronto</span><i>.</i></span></a><nav class="nav-links" aria-label="Navegação principal"><a href="index.html">Início</a><a href="menu.html">Cardápio</a><a href="retirada.html">Acompanhar pedido</a></nav><a class="button button-dark button-small" href="retirada.html">Acompanhar <span aria-hidden="true">→</span></a></header>
+  <main class="wrap narrow page-main"><a class="back-link" href="menu.html">← Voltar ao cardápio</a><section class="confirmation-card" aria-live="polite">
+    <div class="success-icon">✓</div><p class="eyebrow">PEDIDO CONFIRMADO</p><h1>Feito pra você,<br><span id="nome-pessoa">e prontinho.</span></h1><p class="confirmation-lede">Seu prato já entrou na fila da cozinha. Guarde este código e apresente na hora de retirar.</p>
+    <div id="codigo-area" class="code-card"><span>CÓDIGO DE RETIRADA</span><strong id="codigo"></strong><div class="code-meta"><span>VÁLIDO PARA ESTE PEDIDO</span><span>PRATO PRONTO · ALMOÇO</span></div></div>
+    <div class="order-receipt"><div class="receipt-title"><strong>O seu prato</strong><span id="resumo-pessoa"></span></div><ul id="itens-pedido"></ul></div>
+    <p id="confirm-message" class="form-error" role="alert"></p>
+    <div class="stack-actions"><button id="copiar-codigo" class="button button-primary full-width" type="button">Copiar código</button><a class="button button-outline full-width" href="retirada.html">Acompanhar / retirar meu pedido <span aria-hidden="true">→</span></a></div>
+  </section></main>
+  <footer class="footer wrap"><a class="brand" href="index.html"><span class="brand-mark">◒</span><span>prato<span class="brand-blue">pronto</span><i>.</i></span></a><span>Uma boa ideia para um intervalo melhor.</span><a href="menu.html">Novo pedido</a></footer>
+  <script>
+    const pedido=JSON.parse(sessionStorage.getItem("pratoProntoPedido")||"null");
+    const code=pedido?.codigo;
+    const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    if(!pedido||!/^\d{4}$/.test(String(code||""))){document.querySelector("#codigo-area").hidden=true;document.querySelector("#nome-pessoa").textContent="ainda não tem código?";document.querySelector(".confirmation-lede").textContent="Monte seu prato e confirme o pedido. O código de retirada aparece ao finalizar.";document.querySelector("#itens-pedido").innerHTML="<li>Seu código será criado ao confirmar o almoço.</li>";document.querySelector("#copiar-codigo").hidden=true;document.querySelector("#confirm-message").textContent="Ainda não há pedido confirmado neste navegador.";}
+    else {document.querySelector("#codigo").innerHTML=String(code).split("").map(n=>`<i>${esc(n)}</i>`).join("");document.querySelector("#nome-pessoa").textContent=pedido.nome?`${esc(pedido.nome)}.`:"seu prato está a caminho.";document.querySelector("#resumo-pessoa").textContent=pedido.tipo==="aluno"?`Aluno${pedido.turma?` · ${esc(pedido.turma)}`:""}`:"Professor";document.querySelector("#itens-pedido").innerHTML=(pedido.itens||[]).map(item=>`<li><span>${esc(item.emoji||"🍽️")}</span>${esc(item.nome)}<b>×${Number(item.quantidade)||1}</b></li>`).join("")||"<li>O prato foi confirmado.</li>";}
+    document.querySelector("#copiar-codigo").addEventListener("click",async()=>{if(!code)return;try{await navigator.clipboard.writeText(String(code));document.querySelector("#copiar-codigo").textContent="Código copiado ✓";}catch{document.querySelector("#confirm-message").textContent=`Anote seu código: ${code}`;}});
+  </script>
+</body>
+</html>
+
